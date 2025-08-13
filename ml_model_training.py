@@ -1,28 +1,12 @@
-# Alle bestehenden Imports...
 import pandas as pd
 import numpy as np
 import time
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.metrics import precision_recall_fscore_support
 import joblib
-import os
 
-# MLflow nur wenn verfügbar
-try:
-    import mlflow
-    import mlflow.sklearn
-    MLFLOW_AVAILABLE = True
-    print("MLflow detected - using model registry")
-except ImportError:
-    MLFLOW_AVAILABLE = False
-    print("MLflow not available - using local storage only")
-
-# Alle deine bestehenden Funktionen bleiben gleich...
 def assess_dups_nans(df_audit):
     audit_data = df_audit
     print("\nNullwerte:----------------------------------\n")
@@ -42,11 +26,10 @@ def clean_up(df):
         if df.loc[i, 'LOCATION_ID'].isalpha():
             drop_indices_Audit.append(i)
     print(f"Es werden folgende Zeilen aus den Auditdaten entfernt: {drop_indices_Audit}")
-    clean_df=df.drop(drop_indices_Audit)
-    clean_df=clean_df.drop_duplicates().dropna()
+    clean_df = df.drop(drop_indices_Audit)
+    clean_df = clean_df.drop_duplicates().dropna()
     return clean_df
 
-# Dein kompletter bestehender Code bis zum Training...
 print("Audit-Datensatz-----------------------------\n")
 audit_data = pd.read_csv('audit_data.csv')
 print(audit_data.head(5))
@@ -67,43 +50,32 @@ assess_dups_nans(audit_data)
 
 print("\n")
 
-# Clean-up des Dataframe
 clean_Audit_df = clean_up(audit_data)
 assess_dups_nans(clean_Audit_df)
 
-# Location-ID konvertieren zu int-Werte
 print("\nNach Konversion von LOCATION_ID zu int und Bereinigung-----------------------\n")
 clean_Audit_df['LOCATION_ID'] = clean_Audit_df['LOCATION_ID'].astype(int)
 print(clean_Audit_df.info())
 
-# Korrelation
 print("\nKorrelation:--------------------\n")
 print("Korrelation Audit_Data\n")
 print(clean_Audit_df.corr())
 print("\n")
 
-# Feature Engineering
 drop_Audit_features_lst = ['LOCATION_ID', 'PARA_A', 'Risk_A', 'PARA_B',
                           'TOTAL', 'numbers', 'Score_B.1', 'Risk_C',
                           'Money_Value', 'Risk_D', 'PROB', 'Risk_B',
                           'History', 'Prob', 'Risk_F', 'Inherent_Risk', 'Detection_Risk', 'Audit_Risk']
 train_audit_set = clean_Audit_df.drop(drop_Audit_features_lst, axis=1)
 print(train_audit_set.columns)
+
 print(train_audit_set.head(5))
+
 print(train_audit_set['District_Loss'].head(100))
 print(train_audit_set['RiSk_E'].describe())
 
-# Histogramme (nur wenn nicht in CI/CD)
-ci_environment = os.getenv('CI', 'false').lower() == 'true'
-if not ci_environment:
-    fig, axs = plt.subplots(3, 3, figsize=(12, 10))
-    # Deine Histogram-Plots hier...
-    plt.tight_layout()
-    plt.show()
-
 print(round(train_audit_set.describe(),2))
 
-# Model Training
 X, y = train_audit_set.drop('Risk', axis=1), train_audit_set['Risk']
 X_train, X_test, y_train, y_test = train_test_split(X,y,train_size=0.8,test_size=0.2, random_state=42)
 print(X_train.shape)
@@ -114,31 +86,13 @@ print(y_test.shape)
 clf = RandomForestClassifier(criterion='gini', max_depth=None, bootstrap=True, random_state=42)
 clf.fit(X_train,y_train)
 
-# Predictions
 y_pred = clf.predict(X_test)
 clf.predict_proba(X_test)
 score = clf.score(X_test,y_test)
 
-# Metriken
 metric = precision_recall_fscore_support(y_test, y_pred, zero_division='warn')
 print(classification_report(y_test, y_pred))
 
-# Confusion Matrix (nur wenn nicht in CI/CD)
-if not ci_environment:
-    title = 'Confusion Matrix'
-    normalize = 'true'
-    disp = ConfusionMatrixDisplay.from_predictions(
-        y_test,
-        y_pred,
-        cmap=plt.cm.Blues,
-        display_labels=clf.classes_,
-        normalize=normalize)
-    disp.ax_.set_title(title)
-    print(title)
-    print(disp.confusion_matrix)
-    plt.show()
-
-# Feature Importance
 start_time = time.time()
 importances = clf.feature_importances_
 std = np.std([tree.feature_importances_ for tree in clf.estimators_], axis=0)
@@ -146,32 +100,10 @@ elapsed_time = time.time() - start_time
 
 print(f"Elapsed time to compute the importances: {elapsed_time:.3f} seconds")
 
-# Feature Importance Plot (nur wenn nicht in CI/CD)
-if not ci_environment:
-    forest_importances = pd.Series(importances,index=X_train.columns)
-    fig, ax = plt.subplots()
-    forest_importances.plot.bar(yerr=std, ax=ax)
-    ax.set_title("Feature importances using MDI")
-    ax.set_ylabel("Mean decrease in impurity")
-    fig.tight_layout()
+forest_importances = pd.Series(importances,index=X_train.columns)
 
-# Model speichern - IMMER mit joblib
 print("Modell wird gespeichert...")
 joblib.dump(clf, 'ml_model.joblib')
 print("wurde unter ml_model.joblib gespeichert")
-
-# MLflow nur wenn Server läuft
-if MLFLOW_AVAILABLE:
-    try:
-        mlflow.set_tracking_uri("http://localhost:5000")
-        # Test connection
-        mlflow.get_tracking_uri()
-        mlflow.sklearn.log_model(clf, "audit-risk-model")
-        print("Modell erfolgreich in MLflow registriert")
-    except Exception as e:
-        print(f"MLflow Server nicht verfügbar: {e}")
-        print("Modell nur lokal als .joblib gespeichert")
-else:
-    print("MLflow nicht installiert - nur lokale .joblib Speicherung")
 
 print(f"Training completed! Model accuracy: {score:.4f}")
