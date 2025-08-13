@@ -1,0 +1,10 @@
+artifact_location: mlflow-artifacts:/0/models/m-dbe50348570a40a6ac0c85d99d091224/artifacts
+creation_timestamp: 1755092240961
+experiment_id: '0'
+last_updated_timestamp: 1755092247716
+model_id: m-dbe50348570a40a6ac0c85d99d091224
+model_type: ''
+name: audit-risk-model
+source_run_id: ''
+status: 2
+status_message: null

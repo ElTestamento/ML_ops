@@ -1,0 +1,20 @@
+# Lade ein Mini-Linux mit Python 3.9 runter
+FROM python:3.9-slim
+
+# Erstelle Ordner "/app" im Container und gehe dort hin
+WORKDIR /app
+
+# Kopiere requirements.txt von deinem Computer in den Container
+COPY requirements.txt .
+
+# Installiere alle Pakete aus requirements.txt
+RUN pip install -r requirements.txt
+
+# Kopiere main.py von deinem Computer in den Container
+COPY main.py .
+
+# Sage: "Port 8000 ist für die Außenwelt verfügbar"
+EXPOSE 8000
+
+# Wenn Container startet: Starte FastAPI
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
