@@ -45,6 +45,24 @@ jobs:
         print('Data Quality: OK')
         "
 
+    - name: Setup MLflow Server
+      run: |
+        echo "Starting MLflow Server..."
+        mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db &
+        
+        echo "Waiting for MLflow to be ready..."
+        for i in {1..30}; do
+          if curl -s http://localhost:5000/health > /dev/null 2>&1; then
+            echo "MLflow is ready!"
+            break
+          fi
+          echo "Attempt $i/30: MLflow not ready yet, waiting..."
+          sleep 2
+        done
+        
+        # Final check
+        curl -f http://localhost:5000/health || echo "MLflow health check failed, but continuing..."
+
     - name: Run Model Training
       run: |
         echo "Training ML Model..."
@@ -61,7 +79,7 @@ jobs:
           import json
           with open('model_drift_report.json') as f:
               data = json.load(f)
-          print('true' if data.get('model_drift_detected', False) else 'false')
+          print('true' if data.get('drift_detected', False) else 'false')
           ")
           echo "drift_detected=$DRIFT_DETECTED" >> $GITHUB_OUTPUT
           
@@ -70,10 +88,10 @@ jobs:
           with open('model_drift_report.json') as f:
               data = json.load(f)
           print('Model Drift Report Summary:')
-          print(f\"   Status: {data.get('summary', {}).get('status', 'Unknown')}\")
-          print(f\"   Recommendation: {data.get('summary', {}).get('recommendation', 'Unknown')}\")
-          if 'model_performance' in data:
-              print(f\"   Estimated Performance: {data['model_performance'].get('estimated_performance', 'N/A'):.3f}\")
+          print(f\"   Status: {'DRIFT DETECTED' if data.get('drift_detected') else 'OK'}\")
+          print(f\"   Recommendation: {data.get('recommendation', 'Unknown')}\")
+          if 'estimated_performance' in data:
+              print(f\"   Estimated Performance: {data['estimated_performance']:.3f}\")
           "
         else
           echo "drift_detected=false" >> $GITHUB_OUTPUT
