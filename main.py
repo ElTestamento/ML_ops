@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 import mlflow.pyfunc
 import os
+import pandas as pd
 
 # APP erstellen
 app = FastAPI()
@@ -25,7 +26,6 @@ except Exception as e:
     print("Container läuft ohne Modell - nur für Testing!")
     ml_model = None
 
-
 def inference(model, input_dict):
     if model is None:
         return [0]  # Dummy Response wenn kein Modell
@@ -33,7 +33,6 @@ def inference(model, input_dict):
     arr = np.array(values)
     input_array = arr.reshape(1, -1)
     return model.predict(input_array)
-
 
 class Check_class(BaseModel):
     Sector_score: float
@@ -45,11 +44,9 @@ class Check_class(BaseModel):
     Score: float
     CONTROL_RISK: float
 
-
 @app.get("/")
 def pred():
     return {"app.get.Route": "Derzeit keine Verwendung", "model_loaded": ml_model is not None}
-
 
 @app.get("/health")
 def health_check():
@@ -58,7 +55,6 @@ def health_check():
         "model_loaded": ml_model is not None,
         "mlflow_uri": mlflow.get_tracking_uri()
     }
-
 
 @app.post("/calc")
 def give_and_check(check_input: Check_class):
@@ -70,4 +66,22 @@ def give_and_check(check_input: Check_class):
     result = inference(ml_model, input_dict)
     # Konvertiere numpy array zu Python int
     prediction = int(result[0])
+
+    # 🎯 Logging einfügen:
+    prediction_data = {
+        'timestamp': [pd.Timestamp.now()],
+        'sector_score': [check_input.Sector_score],
+        'score_a': [check_input.Score_A],
+        'score_b': [check_input.Score_B],
+        'score_mv': [check_input.Score_MV],
+        'district_loss': [check_input.District_Loss],
+        'risk_e': [check_input.RiSk_E],
+        'score': [check_input.Score],
+        'control_risk': [check_input.CONTROL_RISK],
+        'prediction': [prediction]
+    }
+
+    prediction_df = pd.DataFrame(prediction_data)
+    prediction_df.to_csv('predictions.csv', mode='a', header=False, index=False)
+
     return {"Ergebnis": prediction}
