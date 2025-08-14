@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - 'audit_data.csv'
-      - '.github/workflows/mlops-pipeline.yml'
       - 'ml_model_training.py'
       - 'main.py'
       - 'drift_monitor.py'
