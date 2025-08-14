@@ -9,6 +9,9 @@ import joblib
 import mlflow
 import mlflow.sklearn
 
+#Verbindet zum MLflow-Server (localhost:5000) um Modell auf MLFlow zu speichern
+mlflow.set_tracking_uri("http://localhost:5000")
+
 def assess_dups_nans(df_audit):
     audit_data = df_audit
     print("\nNullwerte:----------------------------------\n")
@@ -104,11 +107,15 @@ print(f"Elapsed time to compute the importances: {elapsed_time:.3f} seconds")
 
 forest_importances = pd.Series(importances,index=X_train.columns)
 
-print("Modell wird gespeichert...")
-joblib.dump(clf, 'ml_model.joblib')
-print("Modell wurde unter ml_model.joblib gespeichert")
-# Nach dem Training:
-mlflow.sklearn.log_model(clf, "audit_risk_model")
-print("Modell wurde unter 'audit_risk_model' auf MLFlow gespeichert")
 
-print(f"Training completed! Model accuracy: {score:.4f}")
+# Nach dem Training Modelle speichern:
+with mlflow.start_run():
+    # Model loggen UND registrieren:
+    mlflow.sklearn.log_model(clf, "audit_risk_model")
+    mlflow.log_metric("accuracy", score)
+
+    # Model registrieren
+    model_uri = f"runs:/{mlflow.active_run().info.run_id}/audit_risk_model"
+    mlflow.register_model(model_uri, "audit_risk_model")
+
+    print("Modell wurde unter 'audit_risk_model' auf MLFlow gespeichert UND registriert")
