@@ -6,6 +6,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.metrics import precision_recall_fscore_support
 import joblib
+import mlflow
+import mlflow.sklearn
 
 def assess_dups_nans(df_audit):
     audit_data = df_audit
@@ -104,6 +106,9 @@ forest_importances = pd.Series(importances,index=X_train.columns)
 
 print("Modell wird gespeichert...")
 joblib.dump(clf, 'ml_model.joblib')
-print("wurde unter ml_model.joblib gespeichert")
+print("Modell wurde unter ml_model.joblib gespeichert")
+# Nach dem Training:
+mlflow.sklearn.log_model(clf, "audit_risk_model")
+print("Modell wurde unter 'audit_risk_model' auf MLFlow gespeichert")
 
 print(f"Training completed! Model accuracy: {score:.4f}")

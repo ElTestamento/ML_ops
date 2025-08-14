@@ -68,7 +68,7 @@ def give_and_check(check_input: Check_class):
     prediction = int(result[0])
 
     # 🎯 Logging einfügen:
-    prediction_data = {
+    prediction_data = {#alle relevanten Variablen werden geloggt
         'timestamp': [pd.Timestamp.now()],
         'sector_score': [check_input.Sector_score],
         'score_a': [check_input.Score_A],
@@ -82,6 +82,9 @@ def give_and_check(check_input: Check_class):
     }
 
     prediction_df = pd.DataFrame(prediction_data)
-    prediction_df.to_csv('predictions.csv', mode='a', header=False, index=False)
+    prediction_df.to_csv('predictions.csv', mode='a', header=False, index=False)#erstelle DF
 
     return {"Ergebnis": prediction}
+
+#Basis-Visualisierung------------------------------------------
+

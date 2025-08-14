@@ -95,14 +95,14 @@ jobs:
     steps:
     - name: Report Pipeline Results
       run: |
-        echo "MLOps Pipeline Execution Summary"
+        echo "MLOps Pipeline Summary"
         echo "================================"
         echo "Model Training: ${{ needs.train-model.result }}"
         echo "Container Build: ${{ needs.build-containers.result }}"
         echo "================================"
         
         if [ "${{ needs.train-model.result }}" == "success" ] && [ "${{ needs.build-containers.result }}" == "success" ]; then
-          echo "Pipeline execution completed successfully"
+          echo "Pipeline successfully"
           echo "Model trained and containerized"
         else
           echo "Pipeline execution encountered issues"
