@@ -33,8 +33,7 @@ def clean_up(df):
             drop_indices_Audit.append(i)
     print(f"Es werden folgende Zeilen aus den Auditdaten entfernt: {drop_indices_Audit}")
     clean_df = df.drop(drop_indices_Audit)
-    clean_df = clean_df.dropna()
-    #clean_df = clean_df.drop_duplicates().dropna()
+    clean_df = clean_df.drop_duplicates().dropna()
     return clean_df
 
 

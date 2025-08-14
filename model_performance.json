@@ -1,0 +1,12 @@
+{
+  "models": [
+    {
+      "version": "v1",
+      "accuracy": 0.9802631578947368,
+      "timestamp": "2025-08-14T17:36:53.043147",
+      "training_samples": 759,
+      "model_file": "audit_risk_model_v1.joblib"
+    }
+  ],
+  "latest_version": "v1"
+}
