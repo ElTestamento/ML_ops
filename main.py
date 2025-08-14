@@ -5,42 +5,63 @@ import numpy as np
 import mlflow.pyfunc
 import os
 import pandas as pd
+import json
 
-#Imports für Visualisierung:
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import base64
 import io
 from fastapi.responses import HTMLResponse
 
-# APP erstellen
 app = FastAPI()
 
-# Modell laden - Container-ready!
-print("Das Modell wird aus MLFlow geladen....")
 
-# Verwende Environment Variable oder Default
-mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-mlflow.set_tracking_uri(mlflow_uri)
+def load_model_with_fallback():
+    """Lädt Modell mit Fallback: MLflow -> Lokale Datei"""
+    mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+    mlflow.set_tracking_uri(mlflow_uri)
 
-print(f"MLflow URI: {mlflow_uri}")
+    print(f"MLflow URI: {mlflow_uri}")
 
-try:
-    ml_model = mlflow.pyfunc.load_model('models:/audit_risk_model/latest')
-    print("Das Modell wurde erfolgreich geladen!")
-except Exception as e:
-    print(f"FEHLER beim Model Loading: {e}")
-    print("Container läuft ohne Modell - nur für Testing!")
-    ml_model = None
+    try:
+        ml_model = mlflow.pyfunc.load_model('models:/audit_risk_model/latest')
+        print("Modell aus MLflow geladen!")
+        return ml_model
+    except Exception as e:
+        print(f"MLflow Loading fehlgeschlagen: {e}")
+
+        try:
+            if os.path.exists('models/audit_risk_model_latest.joblib'):
+                ml_model = joblib.load('models/audit_risk_model_latest.joblib')
+                print("Modell aus lokaler Datei geladen!")
+                return ml_model
+            else:
+                print("Keine lokale Modell-Datei gefunden")
+                return None
+        except Exception as e2:
+            print(f"Lokaler Loading Fehler: {e2}")
+            return None
+
+
+print("Das Modell wird geladen....")
+ml_model = load_model_with_fallback()
+
+if ml_model is not None:
+    print("Modell erfolgreich geladen!")
+else:
+    print("FEHLER: Kein Modell gefunden - DEMO_MODE")
+
 
 def inference(model, input_dict):
     if model is None:
-        return [0]  # Dummy Response wenn kein Modell
+        return [0]
     values = list(input_dict.values())
     arr = np.array(values)
     input_array = arr.reshape(1, -1)
     return model.predict(input_array)
+
 
 class Check_class(BaseModel):
     Sector_score: float
@@ -52,9 +73,11 @@ class Check_class(BaseModel):
     Score: float
     CONTROL_RISK: float
 
+
 @app.get("/")
 def pred():
     return {"app.get.Route": "Derzeit keine Verwendung", "model_loaded": ml_model is not None}
+
 
 @app.get("/health")
 def health_check():
@@ -64,19 +87,17 @@ def health_check():
         "mlflow_uri": mlflow.get_tracking_uri()
     }
 
+
 @app.post("/calc")
 def give_and_check(check_input: Check_class):
     if ml_model is None:
         return {"Ergebnis": "DEMO_MODE", "message": "Kein Modell geladen - nur Testing"}
 
-    # Pydantic-Instanz zu Dictionary konvertieren
     input_dict = check_input.dict()
     result = inference(ml_model, input_dict)
-    # Konvertiere numpy array zu Python int
     prediction = int(result[0])
 
-    # 🎯 Logging einfügen:
-    prediction_data = {#alle relevanten Variablen werden geloggt
+    prediction_data = {
         'timestamp': [pd.Timestamp.now()],
         'sector_score': [check_input.Sector_score],
         'score_a': [check_input.Score_A],
@@ -90,12 +111,11 @@ def give_and_check(check_input: Check_class):
     }
 
     prediction_df = pd.DataFrame(prediction_data)
-    prediction_df.to_csv('predictions.csv', mode='a', header=False, index=False)#erstelle DF
+    prediction_df.to_csv('predictions.csv', mode='a', header=False, index=False)
 
     return {"Ergebnis": prediction}
 
-#Basis-Visualisierung------------------------------------------
-# Zu main.py hinzufügen - nur die nötigsten Zeilen!
+
 def create_charts():
     """4 einfache Charts aus predictions.csv"""
     df = pd.read_csv('predictions.csv', names=[
@@ -105,7 +125,6 @@ def create_charts():
 
     charts = []
 
-    # Chart 1: Risiko-Verteilung
     plt.figure(figsize=(6, 4))
     risk_counts = df['prediction'].value_counts()
     plt.bar(['Kein Risiko', 'Risiko'], [risk_counts.get(0, 0), risk_counts.get(1, 0)], color=['green', 'red'])
@@ -116,7 +135,6 @@ def create_charts():
     charts.append(base64.b64encode(img.getvalue()).decode())
     plt.close()
 
-    # Chart 2: Timeline
     plt.figure(figsize=(8, 4))
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     plt.scatter(df['timestamp'], df['prediction'], c=df['prediction'], cmap='RdYlGn_r', s=100)
@@ -128,7 +146,6 @@ def create_charts():
     charts.append(base64.b64encode(img.getvalue()).decode())
     plt.close()
 
-    # Chart 3: Score-Verteilung
     plt.figure(figsize=(6, 4))
     plt.hist(df['score'], bins=5, color='blue', alpha=0.7)
     plt.title('Score-Verteilung')
@@ -139,7 +156,6 @@ def create_charts():
     charts.append(base64.b64encode(img.getvalue()).decode())
     plt.close()
 
-    # Chart 4: Feature-Durchschnitte
     plt.figure(figsize=(8, 4))
     features = ['sector_score', 'score_a', 'score_b', 'score_mv', 'district_loss', 'risk_e', 'score', 'control_risk']
     means = [df[f].mean() for f in features]
@@ -159,7 +175,6 @@ def create_charts():
 def simple_report():
     """Einfacher Report: Input + Prediction + 4 Charts"""
 
-    # Letzte Prediction aus CSV holen
     df = pd.read_csv('predictions.csv', names=[
         'timestamp', 'sector_score', 'score_a', 'score_b', 'score_mv',
         'district_loss', 'risk_e', 'score', 'control_risk', 'prediction'
@@ -173,12 +188,10 @@ def simple_report():
     Score: {last_row['score']}, Control Risk: {last_row['control_risk']}
     """
 
-    prediction_text = "🚨 RISIKO ERKANNT" if last_row['prediction'] == 1 else "✅ KEIN RISIKO"
+    prediction_text = "RISIKO ERKANNT" if last_row['prediction'] == 1 else "KEIN RISIKO"
 
-    # Charts erstellen
     chart1, chart2, chart3, chart4 = create_charts()
 
-    # Einfaches HTML
     html = f"""
     <html>
     <body style="font-family: Arial; margin: 40px;">
