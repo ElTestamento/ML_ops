@@ -12,13 +12,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.metrics import precision_recall_fscore_support
 import joblib
-import mlflow
-import mlflow.sklearn
 import json
 import os
 from datetime import datetime
-
-mlflow.set_tracking_uri("http://localhost:5000")
 
 def clean_up(df):
     df = df
@@ -101,19 +97,3 @@ score = clf.score(X_test, y_test)
 # Model Export - Lokale Dateien
 training_samples = len(clean_Audit_df)
 model_version = export_model_and_update_performance(clf, score, training_samples)
-
-# MLflow - falls verfügbar
-try:
-    with mlflow.start_run():
-        mlflow.sklearn.log_model(clf, "audit_risk_model")
-        mlflow.log_metric("accuracy", score)
-
-        model_uri = f"runs:/{mlflow.active_run().info.run_id}/audit_risk_model"
-        mlflow.register_model(model_uri, "audit_risk_model")
-
-        print("Modell wurde unter 'audit_risk_model' auf MLFlow gespeichert UND registriert")
-except Exception as e:
-    print(f"MLflow speichern fehlgeschlagen: {e}")
-    print("Modell wurde trotzdem lokal gespeichert")
-
-print(f"Training abgeschlossen! Model Version: {model_version}, Accuracy: {score:.4f}")

@@ -1,28 +1,13 @@
 version: '3.8'
-
 services:
-  mlflow:
-    build:
-      context: .
-      dockerfile: Dockerfile.mlflow
-    ports:
-      - "5000:5000"
-    networks:
-      - audit-network
-
   audit-api:
     build:
       context: .
       dockerfile: Dockerfile.fastapi
     ports:
       - "8000:8000"
-    depends_on:
-      - mlflow
-    environment:
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
     networks:
       - audit-network
-
 networks:
   audit-network:
     driver: bridge

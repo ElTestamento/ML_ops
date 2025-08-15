@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
 import numpy as np
-import mlflow.pyfunc
 import os
 import pandas as pd
 import matplotlib
@@ -15,30 +14,17 @@ from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
-
-def load_model_with_fallback():
-    """Lädt Modell mit Fallback: MLflow -> Lokale Datei -> Demo Mode"""
-    mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-    mlflow.set_tracking_uri(mlflow_uri)
-
-    # Versuche MLflow
-    ml_model = mlflow.pyfunc.load_model('models:/audit_risk_model/latest')
-    if ml_model:
-        print("Modell aus MLflow geladen!")
-        return ml_model
-
-    # Versuche lokale Datei
+def load_model():
+    # 1. Files checken (neueste GitHub Models im Ordner models in der IDE)
     if os.path.exists('models/audit_risk_model_latest.joblib'):
         ml_model = joblib.load('models/audit_risk_model_latest.joblib')
-        print("Modell aus lokaler Datei geladen!")
+        print("Modell aus Git Files geladen!")
         return ml_model
 
     print("FEHLER: Kein Modell gefunden - DEMO_MODE")
     return None
 
-
 def inference(model, input_dict):
-    """Führt Prediction mit dem geladenen Modell durch"""
     if model is None:
         return [0]
     values = list(input_dict.values())
@@ -59,7 +45,7 @@ class Check_class(BaseModel):
 
 # Modell beim Start laden
 print("Das Modell wird geladen....")
-ml_model = load_model_with_fallback()
+ml_model = load_model()
 
 if ml_model is not None:
     print("Modell erfolgreich geladen!")
@@ -71,15 +57,12 @@ else:
 def root():
     return {"status": "Audit Risk API", "model_loaded": ml_model is not None}
 
-
 @app.get("/health")
 def health_check():
     return {
         "status": "healthy",
         "model_loaded": ml_model is not None,
-        "mlflow_uri": mlflow.get_tracking_uri()
     }
-
 
 @app.post("/calc")
 def predict_risk(check_input: Check_class):
@@ -113,7 +96,6 @@ def predict_risk(check_input: Check_class):
 
 
 def create_chart(chart_type, df):
-    """Erstellt einzelne Charts basierend auf Typ"""
     plt.figure(figsize=(6, 4))
 
     if chart_type == "risk_distribution":
@@ -154,7 +136,6 @@ def create_chart(chart_type, df):
 
 @app.get("/report", response_class=HTMLResponse)
 def generate_report():
-    """Erstellt Business Intelligence Report"""
 
     # CSV laden
     df = pd.read_csv('predictions.csv', names=[

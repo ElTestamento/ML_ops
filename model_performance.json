@@ -2,18 +2,11 @@
   "models": [
     {
       "version": "v1",
-      "accuracy": 0.9802631578947368,
-      "timestamp": "2025-08-14T17:36:53.043147",
-      "training_samples": 759,
-      "model_file": "audit_risk_model_v1.joblib"
-    },
-    {
-      "version": "v2",
       "accuracy": 0.954248366013072,
-      "timestamp": "2025-08-15T13:25:22.358847",
+      "timestamp": "2025-08-15T14:24:27.350638",
       "training_samples": 764,
-      "model_file": "audit_risk_model_v2.joblib"
+      "model_file": "audit_risk_model_v1.joblib"
     }
   ],
-  "latest_version": "v2"
+  "latest_version": "v1"
 }

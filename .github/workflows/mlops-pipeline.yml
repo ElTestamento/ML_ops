@@ -29,52 +29,6 @@ jobs:
         echo "Training ML Model..."
         python ml_model_training.py
 
-    - name: Exportiere Model
-      run: |
-        python -c "
-        import joblib
-        import json
-        import os
-        from datetime import datetime
-        
-        # Modell laden 
-        if os.path.exists('ml_model.joblib'):
-            model = joblib.load('ml_model.joblib')
-            
-            # Performance 
-            current_accuracy = 0.98  
-            
-            # Performance History 
-            with open('model_performance.json', 'r') as f:
-                perf_data = json.load(f)
-            
-            # Neue Version erstellen
-            new_version = f'v{len(perf_data[\"models\"]) + 1}'
-            
-            # Modell speichern
-            model_filename = f'audit_risk_model_{new_version}.joblib'
-            joblib.dump(model, f'models/{model_filename}')
-            joblib.dump(model, 'models/audit_risk_model_latest.joblib')
-            
-            # Performance update
-            new_model_entry = {
-                'version': new_version,
-                'accuracy': current_accuracy,
-                'timestamp': datetime.now().isoformat(),
-                'training_samples': 759,  # Anpassen nach Bedarf
-                'model_file': model_filename
-            }
-            
-            perf_data['models'].append(new_model_entry)
-            perf_data['latest_version'] = new_version
-            
-            # Performance History speichern
-            with open('model_performance.json', 'w') as f:
-                json.dump(perf_data, f, indent=2)
-                
-            print(f'Model {new_version} exported with accuracy: {current_accuracy}')
-        "
-
     - name: Model Performance Drift Check
       id: drift_check
       run: |
@@ -91,7 +45,7 @@ jobs:
             latest_acc = models[-1]['accuracy']
             previous_acc = models[-2]['accuracy']
             performance_drop = previous_acc - latest_acc
-            drift_threshold = 0.05  # 5% als Threshold angenommen zur Unterscheidung der Modelle
+            drift_threshold = 0.05  # 5% als Threshold
             
             drift_detected = performance_drop > drift_threshold
             
