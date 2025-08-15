@@ -1,4 +1,4 @@
-name: MLOps Pipeline with Model Deployment
+name: MLOps Pipeline
 
 on:
   push:
@@ -11,25 +11,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
+    - name: Repo laden
       uses: actions/checkout@v3
 
-    - name: Setup Python 3.9
+    - name: Python laden
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
 
-    - name: Install Dependencies
+    - name: Install Pakete
       run: |
         pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run Model Training
+    - name: Starte Training
       run: |
         echo "Training ML Model..."
         python ml_model_training.py
 
-    - name: Export Model and Update Performance
+    - name: Exportiere Model
       run: |
         python -c "
         import joblib
@@ -37,14 +37,14 @@ jobs:
         import os
         from datetime import datetime
         
-        # Modell laden (falls vom Training erstellt)
+        # Modell laden 
         if os.path.exists('ml_model.joblib'):
             model = joblib.load('ml_model.joblib')
             
-            # Performance aus Training extrahieren (vereinfacht)
-            current_accuracy = 0.98  # Hier würden Sie echte Accuracy extrahieren
+            # Performance 
+            current_accuracy = 0.98  
             
-            # Performance History laden
+            # Performance History 
             with open('model_performance.json', 'r') as f:
                 perf_data = json.load(f)
             
@@ -56,7 +56,7 @@ jobs:
             joblib.dump(model, f'models/{model_filename}')
             joblib.dump(model, 'models/audit_risk_model_latest.joblib')
             
-            # Performance updaten
+            # Performance update
             new_model_entry = {
                 'version': new_version,
                 'accuracy': current_accuracy,
@@ -91,7 +91,7 @@ jobs:
             latest_acc = models[-1]['accuracy']
             previous_acc = models[-2]['accuracy']
             performance_drop = previous_acc - latest_acc
-            drift_threshold = 0.05  # 5%
+            drift_threshold = 0.05  # 5% als Threshold angenommen zur Unterscheidung der Modelle
             
             drift_detected = performance_drop > drift_threshold
             

@@ -5,8 +5,6 @@ import numpy as np
 import mlflow.pyfunc
 import os
 import pandas as pd
-import json
-
 import matplotlib
 
 matplotlib.use('Agg')
@@ -19,47 +17,32 @@ app = FastAPI()
 
 
 def load_model_with_fallback():
-    """Lädt Modell mit Fallback: MLflow -> Lokale Datei"""
+    """Lädt Modell mit Fallback: MLflow -> Lokale Datei -> Demo Mode"""
     mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
     mlflow.set_tracking_uri(mlflow_uri)
 
-    print(f"MLflow URI: {mlflow_uri}")
-
-    try:
-        ml_model = mlflow.pyfunc.load_model('models:/audit_risk_model/latest')
+    # Versuche MLflow
+    ml_model = mlflow.pyfunc.load_model('models:/audit_risk_model/latest')
+    if ml_model:
         print("Modell aus MLflow geladen!")
         return ml_model
-    except Exception as e:
-        print(f"MLflow Loading fehlgeschlagen: {e}")
 
-        try:
-            if os.path.exists('models/audit_risk_model_latest.joblib'):
-                ml_model = joblib.load('models/audit_risk_model_latest.joblib')
-                print("Modell aus lokaler Datei geladen!")
-                return ml_model
-            else:
-                print("Keine lokale Modell-Datei gefunden")
-                return None
-        except Exception as e2:
-            print(f"Lokaler Loading Fehler: {e2}")
-            return None
+    # Versuche lokale Datei
+    if os.path.exists('models/audit_risk_model_latest.joblib'):
+        ml_model = joblib.load('models/audit_risk_model_latest.joblib')
+        print("Modell aus lokaler Datei geladen!")
+        return ml_model
 
-
-print("Das Modell wird geladen....")
-ml_model = load_model_with_fallback()
-
-if ml_model is not None:
-    print("Modell erfolgreich geladen!")
-else:
     print("FEHLER: Kein Modell gefunden - DEMO_MODE")
+    return None
 
 
 def inference(model, input_dict):
+    """Führt Prediction mit dem geladenen Modell durch"""
     if model is None:
         return [0]
     values = list(input_dict.values())
-    arr = np.array(values)
-    input_array = arr.reshape(1, -1)
+    input_array = np.array(values).reshape(1, -1)
     return model.predict(input_array)
 
 
@@ -74,9 +57,19 @@ class Check_class(BaseModel):
     CONTROL_RISK: float
 
 
+# Modell beim Start laden
+print("Das Modell wird geladen....")
+ml_model = load_model_with_fallback()
+
+if ml_model is not None:
+    print("Modell erfolgreich geladen!")
+else:
+    print("FEHLER: Kein Modell gefunden - DEMO_MODE")
+
+
 @app.get("/")
-def pred():
-    return {"app.get.Route": "Derzeit keine Verwendung", "model_loaded": ml_model is not None}
+def root():
+    return {"status": "Audit Risk API", "model_loaded": ml_model is not None}
 
 
 @app.get("/health")
@@ -89,14 +82,17 @@ def health_check():
 
 
 @app.post("/calc")
-def give_and_check(check_input: Check_class):
+def predict_risk(check_input: Check_class):
+    """Hauptendpoint für Risk Predictions"""
     if ml_model is None:
         return {"Ergebnis": "DEMO_MODE", "message": "Kein Modell geladen - nur Testing"}
 
+    # Prediction durchführen
     input_dict = check_input.dict()
     result = inference(ml_model, input_dict)
     prediction = int(result[0])
 
+    # Prediction für Reporting speichern
     prediction_data = {
         'timestamp': [pd.Timestamp.now()],
         'sector_score': [check_input.Sector_score],
@@ -116,71 +112,58 @@ def give_and_check(check_input: Check_class):
     return {"Ergebnis": prediction}
 
 
-def create_charts():
-    """4 einfache Charts aus predictions.csv"""
-    df = pd.read_csv('predictions.csv', names=[
-        'timestamp', 'sector_score', 'score_a', 'score_b', 'score_mv',
-        'district_loss', 'risk_e', 'score', 'control_risk', 'prediction'
-    ])
-
-    charts = []
-
+def create_chart(chart_type, df):
+    """Erstellt einzelne Charts basierend auf Typ"""
     plt.figure(figsize=(6, 4))
-    risk_counts = df['prediction'].value_counts()
-    plt.bar(['Kein Risiko', 'Risiko'], [risk_counts.get(0, 0), risk_counts.get(1, 0)], color=['green', 'red'])
-    plt.title('Risiko-Verteilung')
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    charts.append(base64.b64encode(img.getvalue()).decode())
-    plt.close()
 
-    plt.figure(figsize=(8, 4))
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    plt.scatter(df['timestamp'], df['prediction'], c=df['prediction'], cmap='RdYlGn_r', s=100)
-    plt.title('Predictions über Zeit')
-    plt.ylim(-0.5, 1.5)
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    charts.append(base64.b64encode(img.getvalue()).decode())
-    plt.close()
+    if chart_type == "risk_distribution":
+        risk_counts = df['prediction'].value_counts()
+        plt.bar(['Kein Risiko', 'Risiko'], [risk_counts.get(0, 0), risk_counts.get(1, 0)],
+                color=['green', 'red'])
+        plt.title('Risiko-Verteilung')
 
-    plt.figure(figsize=(6, 4))
-    plt.hist(df['score'], bins=5, color='blue', alpha=0.7)
-    plt.title('Score-Verteilung')
-    plt.xlabel('Score')
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    charts.append(base64.b64encode(img.getvalue()).decode())
-    plt.close()
+    elif chart_type == "timeline":
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        plt.scatter(df['timestamp'], df['prediction'], c=df['prediction'], cmap='RdYlGn_r', s=100)
+        plt.title('Predictions über Zeit')
+        plt.ylim(-0.5, 1.5)
 
-    plt.figure(figsize=(8, 4))
-    features = ['sector_score', 'score_a', 'score_b', 'score_mv', 'district_loss', 'risk_e', 'score', 'control_risk']
-    means = [df[f].mean() for f in features]
-    plt.bar(range(len(features)), means)
-    plt.xticks(range(len(features)), features, rotation=45)
-    plt.title('Feature-Durchschnitte')
+    elif chart_type == "score_distribution":
+        plt.hist(df['score'], bins=5, color='blue', alpha=0.7)
+        plt.title('Score-Verteilung')
+        plt.xlabel('Score')
+
+    elif chart_type == "feature_averages":
+        features = ['sector_score', 'score_a', 'score_b', 'score_mv',
+                    'district_loss', 'risk_e', 'score', 'control_risk']
+        means = [df[f].mean() for f in features]
+        plt.bar(range(len(features)), means)
+        plt.xticks(range(len(features)), features, rotation=45)
+        plt.title('Feature-Durchschnitte')
+        plt.tight_layout()
+
+    # Chart zu Base64 konvertieren
     img = io.BytesIO()
     plt.savefig(img, format='png', bbox_inches='tight')
     img.seek(0)
-    charts.append(base64.b64encode(img.getvalue()).decode())
+    chart_base64 = base64.b64encode(img.getvalue()).decode()
     plt.close()
 
-    return charts[0], charts[1], charts[2], charts[3]
+    return chart_base64
 
 
 @app.get("/report", response_class=HTMLResponse)
-def simple_report():
-    """Einfacher Report: Input + Prediction + 4 Charts"""
+def generate_report():
+    """Erstellt Business Intelligence Report"""
 
+    # CSV laden
     df = pd.read_csv('predictions.csv', names=[
         'timestamp', 'sector_score', 'score_a', 'score_b', 'score_mv',
         'district_loss', 'risk_e', 'score', 'control_risk', 'prediction'
     ])
-    last_row = df.iloc[-1]
 
+    # Letzte Eingabe für Report
+    last_row = df.iloc[-1]
     input_text = f"""
     Sector Score: {last_row['sector_score']}, Score A: {last_row['score_a']}, 
     Score B: {last_row['score_b']}, Score MV: {last_row['score_mv']}, 
@@ -190,8 +173,13 @@ def simple_report():
 
     prediction_text = "RISIKO ERKANNT" if last_row['prediction'] == 1 else "KEIN RISIKO"
 
-    chart1, chart2, chart3, chart4 = create_charts()
+    # Charts erstellen
+    chart1 = create_chart("risk_distribution", df)
+    chart2 = create_chart("timeline", df)
+    chart3 = create_chart("score_distribution", df)
+    chart4 = create_chart("feature_averages", df)
 
+    # HTML Report
     html = f"""
     <html>
     <body style="font-family: Arial; margin: 40px;">

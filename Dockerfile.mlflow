@@ -4,7 +4,7 @@ FROM python:3.9-slim
 # MLflow installieren
 RUN pip install mlflow
 
-# Port für MLflow Server
+# Port für MLflow Server öffnen
 EXPOSE 5000
 
 # MLflow Server starten

@@ -1,9 +1,9 @@
 import streamlit as st
 import requests
 
-st.title("MLOps Audit Risk System")
+st.title("IU_MLOps-Projekt: Audit Risk System")
 
-st.header("Audit Risk Prediction")
+st.header("Vorhersage")
 
 # Input Form
 sector_score = st.number_input("Sector Score", value=3.89)
@@ -15,7 +15,7 @@ risk_e = st.number_input("Risk E", value=0.4)
 score = st.number_input("Score", value=2.4)
 control_risk = st.number_input("Control Risk", value=0.4)
 
-if st.button("Predict Risk"):
+if st.button("Vorhersage des Risiko"):
     payload = {
         "Sector_score": sector_score,
         "Score_A": score_a,
