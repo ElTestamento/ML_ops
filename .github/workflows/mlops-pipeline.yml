@@ -24,15 +24,38 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Pre-Training Drift Check
+      id: pre_drift_check
+      run: |
+        echo "Checking existing model performance before training..."
+        python -c "
+        import json
+        import os
+        
+        if os.path.exists('model_performance.json'):
+            with open('model_performance.json', 'r') as f:
+                perf_data = json.load(f)
+            
+            models = perf_data['models']
+            if len(models) >= 1:
+                latest_acc = models[-1]['accuracy']
+                print(f'Last model accuracy: {latest_acc:.3f}')
+                print(f'Will compare new model against this baseline')
+            else:
+                print('No previous models for comparison')
+        else:
+            print('No model history found - first training')
+        "
+
     - name: Starte Training
       run: |
         echo "Training ML Model..."
         python ml_model_training.py
 
-    - name: Model Performance Drift Check
+    - name: Post-Training Drift Check
       id: drift_check
       run: |
-        echo "Checking Model Performance Drift..."
+        echo "Checking Model Performance Drift after training..."
         python -c "
         import json
         
@@ -42,15 +65,15 @@ jobs:
         models = perf_data['models']
         
         if len(models) >= 2:
-            latest_acc = models[-1]['accuracy']
-            previous_acc = models[-2]['accuracy']
+            latest_acc = models[-1]['accuracy']      # NEUES Modell
+            previous_acc = models[-2]['accuracy']    # VORHERIGES Modell  
             performance_drop = previous_acc - latest_acc
             drift_threshold = 0.05  # 5% als Threshold
             
             drift_detected = performance_drop > drift_threshold
             
-            print(f'Previous accuracy: {previous_acc:.3f}')
-            print(f'Current accuracy: {latest_acc:.3f}')
+            print(f'Previous model accuracy: {previous_acc:.3f}')
+            print(f'New model accuracy: {latest_acc:.3f}')
             print(f'Performance drop: {performance_drop:.3f}')
             print(f'Drift detected: {drift_detected}')
             
@@ -59,7 +82,7 @@ jobs:
             with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                 f.write(f'drift_detected={str(drift_detected).lower()}\n')
         else:
-            print('Not enough models for drift comparison')
+            print('Not enough models for drift comparison (first or second model)')
             with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                 f.write('drift_detected=false\n')
         "
@@ -76,12 +99,12 @@ jobs:
     - name: Model Drift Alert
       if: steps.drift_check.outputs.drift_detected == 'true'
       run: |
-        echo "MODEL PERFORMANCE DRIFT DETECTED!"
-        echo "Significant performance drop detected."
+        echo "🚨 MODEL PERFORMANCE DRIFT DETECTED!"
+        echo "Previous model was better by more than 5%"
         echo "Review required before deployment."
 
     - name: Success Report
       if: steps.drift_check.outputs.drift_detected == 'false'
       run: |
-        echo "Model training and deployment successful!"
-        echo "New model deployed with stable performance."
+        echo "✅ Model training and deployment successful!"
+        echo "New model performance is stable."

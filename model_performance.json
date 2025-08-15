@@ -34,7 +34,63 @@
       "timestamp": "2025-08-15T14:48:29.187843",
       "training_samples": 700,
       "model_file": "audit_risk_model_v5.joblib"
+    },
+    {
+      "version": "v6",
+      "accuracy": 0.9846153846153847,
+      "timestamp": "2025-08-15T14:52:01.664551",
+      "training_samples": 650,
+      "model_file": "audit_risk_model_v6.joblib"
+    },
+    {
+      "version": "v7",
+      "accuracy": 0.9669421487603306,
+      "timestamp": "2025-08-15T14:52:24.878138",
+      "training_samples": 604,
+      "model_file": "audit_risk_model_v7.joblib"
+    },
+    {
+      "version": "v8",
+      "accuracy": 0.9652173913043478,
+      "timestamp": "2025-08-15T14:52:43.112455",
+      "training_samples": 572,
+      "model_file": "audit_risk_model_v8.joblib"
+    },
+    {
+      "version": "v9",
+      "accuracy": 0.9724770642201835,
+      "timestamp": "2025-08-15T14:53:02.029198",
+      "training_samples": 542,
+      "model_file": "audit_risk_model_v9.joblib"
+    },
+    {
+      "version": "v10",
+      "accuracy": 0.9879518072289156,
+      "timestamp": "2025-08-15T14:53:15.249524",
+      "training_samples": 413,
+      "model_file": "audit_risk_model_v10.joblib"
+    },
+    {
+      "version": "v11",
+      "accuracy": 0.9625,
+      "timestamp": "2025-08-15T14:53:28.004293",
+      "training_samples": 396,
+      "model_file": "audit_risk_model_v11.joblib"
+    },
+    {
+      "version": "v12",
+      "accuracy": 0.9868421052631579,
+      "timestamp": "2025-08-15T14:53:38.752149",
+      "training_samples": 380,
+      "model_file": "audit_risk_model_v12.joblib"
+    },
+    {
+      "version": "v13",
+      "accuracy": 0.9452054794520548,
+      "timestamp": "2025-08-15T14:53:56.830971",
+      "training_samples": 364,
+      "model_file": "audit_risk_model_v13.joblib"
     }
   ],
-  "latest_version": "v5"
+  "latest_version": "v13"
 }
