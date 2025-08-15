@@ -20,7 +20,21 @@
       "timestamp": "2025-08-15T14:42:19.362224",
       "training_samples": 90,
       "model_file": "audit_risk_model_v3.joblib"
+    },
+    {
+      "version": "v4",
+      "accuracy": 0.9586206896551724,
+      "timestamp": "2025-08-15T14:47:13.324555",
+      "training_samples": 721,
+      "model_file": "audit_risk_model_v4.joblib"
+    },
+    {
+      "version": "v5",
+      "accuracy": 0.9571428571428572,
+      "timestamp": "2025-08-15T14:48:29.187843",
+      "training_samples": 700,
+      "model_file": "audit_risk_model_v5.joblib"
     }
   ],
-  "latest_version": "v3"
+  "latest_version": "v5"
 }
