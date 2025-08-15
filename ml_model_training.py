@@ -16,13 +16,26 @@ import json
 import os
 from datetime import datetime
 
+
 def clean_up(df):
-    df = df
+    """Bereinigt DataFrame - robust gegen verschiedene Datentypen"""
+    df = df.copy()
     drop_indices_Audit = []
+
     for i, row in df.iterrows():
-        if df.loc[i, 'LOCATION_ID'].isalpha():
+        location_id = df.loc[i, 'LOCATION_ID']
+
+        # Prüfe nur wenn es ein String ist
+        if isinstance(location_id, str) and location_id.isalpha():
             drop_indices_Audit.append(i)
-    clean_df = df.drop(drop_indices_Audit)
+
+    print(f"Entferne {len(drop_indices_Audit)} Zeilen mit alphabetischen LOCATION_IDs")
+
+    if drop_indices_Audit:
+        clean_df = df.drop(drop_indices_Audit)
+    else:
+        clean_df = df
+
     clean_df = clean_df.drop_duplicates().dropna()
     return clean_df
 

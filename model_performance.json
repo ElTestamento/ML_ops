@@ -13,7 +13,14 @@
       "timestamp": "2025-08-15T12:32:31.250740",
       "training_samples": 764,
       "model_file": "audit_risk_model_v2.joblib"
+    },
+    {
+      "version": "v3",
+      "accuracy": 1.0,
+      "timestamp": "2025-08-15T14:42:19.362224",
+      "training_samples": 90,
+      "model_file": "audit_risk_model_v3.joblib"
     }
   ],
-  "latest_version": "v2"
+  "latest_version": "v3"
 }
