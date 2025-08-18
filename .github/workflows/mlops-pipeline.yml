@@ -65,8 +65,8 @@ jobs:
         models = perf_data['models']
         
         if len(models) >= 2:
-            latest_acc = models[-1]['accuracy']      # NEUES Modell
-            previous_acc = models[-2]['accuracy']    # VORHERIGES Modell  
+            latest_acc = models[-1]['accuracy']      # Neues Modell
+            previous_acc = models[-2]['accuracy']    # altes Modell  
             performance_drop = previous_acc - latest_acc
             drift_threshold = 0.05  # 5% als Threshold
             
@@ -99,12 +99,12 @@ jobs:
     - name: Model Drift Alert
       if: steps.drift_check.outputs.drift_detected == 'true'
       run: |
-        echo "🚨 MODEL PERFORMANCE DRIFT DETECTED!"
+        echo "MODEL PERFORMANCE DRIFT DETECTED!"
         echo "Previous model was better by more than 5%"
         echo "Review required before deployment."
 
     - name: Success Report
       if: steps.drift_check.outputs.drift_detected == 'false'
       run: |
-        echo "✅ Model training and deployment successful!"
+        echo "Model training and deployment successful!"
         echo "New model performance is stable."

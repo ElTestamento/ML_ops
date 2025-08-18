@@ -9,7 +9,7 @@ COPY requirements.txt .
 # Installiere alle Pakete aus requirements.txt
 RUN pip install -r requirements.txt
 
-# Kopiere main.py von deinem Computer in den Container
+# Kopiere main.py in den Container
 COPY main.py .
 
 # Port 8000 öffnen"

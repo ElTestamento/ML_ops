@@ -1,7 +1,7 @@
-#Trainingspipeline ohne graphische Darstellung und Auswertung zur Ausfwahl der Features:
+# Trainingspipeline ohne graphische Darstellung und Auswertung zur Ausfwahl der Features:
 # Primärmodell und Strategie zur Datenaufbereitung, Preprocessing und Featureengineering
 # auf Colab entwickelt und trainiert.
-#Code hier wesentlich gekürzt um graphischen Output und Statistiken sowie
+# Code hier wesentlich gekürzt um graphischen Output und Statistiken sowie
 # "Prints", da hierdurch Performance reduziert wird, aber die "prints" niemand sieht.
 
 import pandas as pd
@@ -18,7 +18,7 @@ from datetime import datetime
 
 
 def clean_up(df):
-    """Bereinigt DataFrame - robust gegen verschiedene Datentypen"""
+    """Bereinigt DataFrame"""
     df = df.copy()
     drop_indices_Audit = []
 
